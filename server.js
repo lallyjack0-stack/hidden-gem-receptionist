@@ -27,18 +27,19 @@ wss.on("connection", (ws) => {
 });
 
 // --- Express webhook for Twilio Voice ---
-app.post("/voice", (req, res) => {
+app.all("/voice", (req, res) => {
   console.log("📞 /voice endpoint was called by Twilio");
 
   const twiml = new twilio.twiml.VoiceResponse();
   const connect = twiml.connect();
   connect.stream({
-    url: "wss://unwindowed-subvesicular-lu.ngrok-free.dev", // change later to Render WSS
+    url: "wss://unwindowed-subvesicular-lu.ngrok-free.dev",
   });
 
   res.type("text/xml");
   res.send(twiml.toString());
 });
+
 
 // --- Optional health check route ---
 app.get("/", (req, res) => {
