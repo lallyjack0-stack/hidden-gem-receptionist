@@ -32,9 +32,10 @@ app.all("/voice", (req, res) => {
 
   const twiml = new twilio.twiml.VoiceResponse();
   const connect = twiml.connect();
-  connect.stream({
-    url: "wss://unwindowed-subvesicular-lu.ngrok-free.dev",
-  });
+ connect.stream({
+  url: "wss://hidden-gem-receptionist.onrender.com",
+});
+
 
   res.type("text/xml");
   res.send(twiml.toString());
