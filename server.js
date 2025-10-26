@@ -40,12 +40,18 @@ app.all("/voice", (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
   const connect = twiml.connect();
   connect.stream({
-    url: `wss://${req.headers.host}`, // same host as Render app
+    url: `wss://${req.headers.host}`,
+    track: "both_tracks", // 👈 add this line
   });
 
   res.type("text/xml");
   res.send(twiml.toString());
 });
+
+
+  res.type("text/xml");
+  res.send(twiml.toString());
+
 
 // --- Start combined server ---
 server.listen(port, "0.0.0.0", () => {
