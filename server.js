@@ -1,16 +1,16 @@
 import express from "express";
 import twilio from "twilio";
 import { WebSocketServer } from "ws";
+import http from "http";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware to parse Twilio webhooks
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
+// --- Create HTTP server for both Express and WebSocket ---
+const server = http.createServer(app);
 
-// --- WebSocket server (for Twilio media stream) ---
-const wss = new WebSocketServer({ port: 8080 });
+// --- WebSocket server (same port as Express) ---
+const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws) => {
   console.log("🔗 Twilio connected to media stream");
@@ -19,7 +19,7 @@ wss.on("connection", (ws) => {
     const data = JSON.parse(msg);
     if (data.event === "media") {
       const audioChunk = data.media.payload;
-      // later you'll send this to your AI / ElevenLabs
+      // you'll stream this to AI later
     }
   });
 
@@ -32,24 +32,18 @@ app.all("/voice", (req, res) => {
 
   const twiml = new twilio.twiml.VoiceResponse();
   const connect = twiml.connect();
- connect.stream({
-  url: "wss://hidden-gem-receptionist.onrender.com",
-});
-
+  connect.stream({
+    url: `wss://${req.headers.host}`, // same host as Render app
+  });
 
   res.type("text/xml");
   res.send(twiml.toString());
 });
 
-
-// --- Optional health check route ---
-app.get("/", (req, res) => {
-  res.send("✅ Hidden Gem Receptionist is running.");
+// --- Start combined server ---
+server.listen(port, "0.0.0.0", () => {
+  console.log(`🚀 Server and WebSocket running on port ${port}`);
 });
 
-// --- Start Express server ---
-app.listen(port, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${port}`);
-});
 
 
