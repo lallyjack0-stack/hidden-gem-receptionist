@@ -3,7 +3,11 @@ import twilio from "twilio";
 import { WebSocketServer } from "ws";
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+
+// Middleware to parse Twilio webhooks
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
 // --- WebSocket server (for Twilio media stream) ---
 const wss = new WebSocketServer({ port: 8080 });
@@ -28,13 +32,22 @@ app.post("/voice", (req, res) => {
 
   const twiml = new twilio.twiml.VoiceResponse();
   const connect = twiml.connect();
-  connect.stream({ url: "wss://unwindowed-subvesicular-lu.ngrok-free.dev" });
+  connect.stream({
+    url: "wss://unwindowed-subvesicular-lu.ngrok-free.dev", // change later to Render WSS
+  });
+
   res.type("text/xml");
   res.send(twiml.toString());
 });
 
+// --- Optional health check route ---
+app.get("/", (req, res) => {
+  res.send("✅ Hidden Gem Receptionist is running.");
+});
+
 // --- Start Express server ---
 app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });
+
 
