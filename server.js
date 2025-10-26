@@ -6,6 +6,13 @@ import http from "http";
 const app = express();
 const port = process.env.PORT || 3000;
 
+// --- allow WebSocket upgrade through Render proxy ---
+app.use((req, res, next) => {
+  res.setHeader("Connection", "Upgrade");
+  res.setHeader("Upgrade", "websocket");
+  next();
+});
+
 // --- Create a shared HTTP server for both Express and WebSocket ---
 const server = http.createServer(app);
 
@@ -45,8 +52,8 @@ app.all("/voice", (req, res) => {
   const connect = twiml.connect();
 
   connect.stream({
-    url: `wss://${req.headers.host}`, // use Render’s domain
-    track: "both_tracks", // capture both caller + callee audio
+    url: "wss://hidden-gem-receptionist.onrender.com", // explicit URL for Render
+    track: "both_tracks",
   });
 
   res.type("text/xml");
@@ -57,6 +64,7 @@ app.all("/voice", (req, res) => {
 server.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server and WebSocket running on port ${port}`);
 });
+
 
 
 
