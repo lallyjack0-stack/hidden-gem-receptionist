@@ -1,52 +1,46 @@
 import express from "express";
-import twilio from "twilio";
+import { createServer } from "http";
 import { WebSocketServer } from "ws";
+import twilio from "twilio";
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// --- WebSocket server (for Twilio media stream) ---
-const wss = new WebSocketServer({ port: 8080 });
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-wss.on("connection", (ws) => {
-  console.log("🔗 Twilio connected to media stream");
-
-  ws.on("message", (msg) => {
-    try {
-      const data = JSON.parse(msg);
-      if (data.event === "start") {
-        console.log("🎙️ Stream started from Twilio");
-      } else if (data.event === "media") {
-        console.log(`🎧 Received audio chunk (${data.media.payload.length} bytes)`);
-      } else if (data.event === "stop") {
-        console.log("🛑 Stream stopped");
-      }
-    } catch (err) {
-      console.error("❌ Error parsing media stream message:", err);
-    }
-  });
-
-  ws.on("close", () => console.log("❌ Twilio disconnected"));
-});
-
-// --- Express webhook for Twilio Voice ---
+// --- Twilio webhook ---
 app.post("/voice", (req, res) => {
   console.log("📞 /voice endpoint was called by Twilio");
-
-  const twiml = new twilio.twiml.VoiceResponse();
-  const connect = twiml.connect();
-  connect.stream({ url: "wss://hidden-gem-receptionist.fly.dev" }); // same domain as app
+  const response = new twilio.twiml.VoiceResponse();
+  const connect = response.connect({ region: "us1" });
+  connect.stream({
+    url: "wss://hidden-gem-receptionist.fly.dev",
+    track: "both_tracks",
+  });
   res.type("text/xml");
-  res.send(twiml.toString());
+  res.send(response.toString());
 });
 
-// --- Start Express server ---
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server + WebSocket running on port ${PORT}`);
+// --- Health check route ---
+app.get("/", (req, res) => {
+  res.status(200).send("✅ Hidden Gem Receptionist is live");
 });
 
+// --- Create HTTP + WebSocket server ---
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
 
+wss.on("connection", (ws, req) => {
+  console.log("🔗 Twilio connected to WebSocket:", req.socket.remoteAddress);
+  ws.on("message", (msg) => console.log("🎧 Received message:", msg.length, "bytes"));
+  ws.on("close", () => console.log("❌ Twilio WebSocket closed"));
+  ws.on("error", (err) => console.error("⚠️ WebSocket error:", err));
+});
 
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running and listening on port ${PORT}`);
+});
 
 
 
